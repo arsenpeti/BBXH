@@ -1,55 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';  // Import AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 import BASE_URL from '../api/baseUrl.jsx';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);  // Track loading state
-  const [errorMessage, setErrorMessage] = useState(null);  // Store error message
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
 
-  // Function to handle login logic
   const handleLogin = async () => {
     if (email && password) {
-      setIsLoading(true);  // Start loading
+      setIsLoading(true);
       try {
-        // Prepare data for POST request
-        const response = await fetch(`${BASE_URL}/auth/login`, { // Update with your login endpoint
+        const response = await fetch(`${BASE_URL}/auth/login`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: email,
-            password: password,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
         });
 
-       // const data = await response.json();
-
         if (response.ok) {
-          console.log("API HITTED")
-          // Assuming the response contains a token or some other data to store
+          console.log("API HITTED");
           await AsyncStorage.setItem('userEmail', email);
-          // You can store other data like a token as well if needed
-          // await AsyncStorage.setItem('authToken', data.token); 
-
-          // Redirect to home page
           router.push('/home');
         } else {
-
-          // Handle API errors (e.g., wrong credentials)
           setErrorMessage("Login failed. Please try again.");
         }
       } catch (error) {
         console.error('Login error:', error);
         setErrorMessage('An error occurred. Please try again later.');
       } finally {
-        setIsLoading(false);  // End loading
+        setIsLoading(false);
       }
     } else {
       setErrorMessage('Email and password are required.');
@@ -58,54 +42,56 @@ const Login = () => {
 
   return (
     <View style={styles.container}>
-      <Image
+      <ImageBackground
         source={require('../assets/images/Rectangle 23.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
-      />
-      <LinearGradient
-        colors={['transparent', '#060A11']}
-        locations={[0, 0.6]}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <View style={styles.content}>
-        <Text style={styles.logo}>Bodies By Xhes</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            placeholderTextColor="#9CA3AF"
-            value={email}
-            onChangeText={setEmail} // Store the input in state
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#9CA3AF"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword} // Store the password in state
-          />
-        </View>
+      >
+        {/* Less harsh gradient overlay */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0, 0, 0, 0.3)']} // Reduced opacity for a natural look
+          locations={[0.4, 1]}
+          style={styles.gradient}
+        />
         
-        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}  {/* Display error message */}
-        
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleLogin}
-          disabled={isLoading}  // Disable button while loading
-        >
-          <Text style={styles.loginButtonText}>
-            {isLoading ? 'Logging in...' : 'Log In'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.content}>
+          <Text style={styles.logo}>Bodies By Xhes</Text>
 
-        { <TouchableOpacity onPress={() => router.push('/forgot-password')}>
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-        </TouchableOpacity> }
-      </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+
+          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.loginButtonText}>
+              {isLoading ? 'Logging in...' : 'Log In'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push('/forgot-password')}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
     </View>
   );
 };
@@ -117,19 +103,18 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   backgroundImage: {
+    flex: 1,
     width: '100%',
     height: '100%',
     position: 'absolute',
-    top: 0,
-    left: 0,
-    zIndex: -1,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)', // Lighter tint to retain clarity
   },
   gradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     width: '100%',
-    height: '50%',
+    height: '40%', // Smaller gradient area for a more natural fade
     zIndex: 1,
   },
   content: {
@@ -156,15 +141,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   input: {
-    width: 327, // Consistent width for alignment
+    width: 327,
     height: 44,
     backgroundColor: '#EEF2F5',
-    paddingHorizontal: 12, // Adds horizontal padding for better alignment
+    paddingHorizontal: 12,
     marginBottom: 12,
     borderRadius: 8,
     fontSize: 14,
-    color: '#000', // Updated for better contrast
-    alignSelf: 'center', // Ensures alignment in the center of the screen
+    color: '#000',
+    alignSelf: 'center',
   },
   loginButton: {
     width: 327,
@@ -181,7 +166,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   forgotPasswordText: {
-    color: '#E84479', // Same color as the button
+    color: '#E84479',
     marginTop: 10,
     fontSize: 14,
     textAlign: 'center',
