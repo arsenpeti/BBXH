@@ -8,7 +8,7 @@ const ProfileScreen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header with gradient */}
-      <LinearGradient colors={['#EF87AA']} style={styles.header}>
+      <LinearGradient colors={['#EF87AA', '#FF1493']} style={styles.header}>
         <Image source={{ uri: 'https://via.placeholder.com/100' }} style={styles.profileImage} />
         <Text style={styles.username}>John Doe</Text>
       </LinearGradient>
