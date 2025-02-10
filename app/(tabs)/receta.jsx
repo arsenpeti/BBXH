@@ -4,13 +4,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
 
-const ProfileScreen = () => {
+const ProfileScreen = (props) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header with gradient */}
-      <LinearGradient colors={['#EF87AA', '#FF1493']} style={styles.header}>
-        <Image source={{ uri: 'https://via.placeholder.com/100' }} style={styles.profileImage} />
-        <Text style={styles.username}>John Doe</Text>
+      <LinearGradient 
+        colors={['#ffd9e5', '#E84479']}  // Pink gradient only
+        start={[0, 0]} 
+        end={[0, 1]} 
+        locations={[0, 1]}  // Smooth gradient transition
+        style={styles.header}
+      >
+        <Text style={styles.username}>Jhon Doe</Text>
       </LinearGradient>
 
       {/* Stats Section */}
@@ -61,26 +66,21 @@ const ProfileScreen = () => {
   );
 };
 
+
+
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: '#F0F4FF',
     alignItems: 'center',
-    paddingBottom: 20,
+    paddingBottom: 60,  // Increased bottom padding for more space
   },
   header: {
     width: '100%',
-    paddingVertical: 40,
+    paddingVertical: 100,  // Increased padding for a taller gradient
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: '#fff',
   },
   username: {
     fontSize: 24,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '90%',
-    marginTop: 20,
+    marginTop: 40,  // Increased marginTop to create more space between gradient and stats
   },
   statBox: {
     alignItems: 'center',
@@ -134,3 +134,4 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileScreen;
+  
