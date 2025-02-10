@@ -160,6 +160,7 @@ const App = () => {
 const styles = StyleSheet.create({
   ara: {
     paddingBottom: -50,
+    backgroundColor: '#EF87AA',
   },
   safeArea: {
     flex: 1,
