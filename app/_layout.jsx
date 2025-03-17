@@ -15,6 +15,7 @@ export default function RootLayout() {
       <Stack.Screen
         name="workout"
         options={{
+          animationEnabled: false,
           headerTransparent: true,
           headerTitle: "",
           headerLeft: () => (

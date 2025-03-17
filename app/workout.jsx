@@ -16,6 +16,9 @@ import axios from 'axios';
 import { useLocalSearchParams } from 'expo-router/build/hooks';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import useTimeSpent from './withTimeSpent';
+import { incrementWorkoutCount } from './workoutStorage';
+
 
 const { width } = Dimensions.get('window');
 const IMG_HEIGHT = 235;
@@ -23,6 +26,7 @@ const VISIBLE_COUNT = 4;
 
 const WorkoutView = () => {
   const { id } = useLocalSearchParams();
+  const {incrementTimeSpent} = useTimeSpent("timeSpent"); // Use the hook to track time spent
 
   const [lineWidth, setLineWidth] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -36,6 +40,40 @@ const WorkoutView = () => {
   const [exercises, setExercises] = useState([]);
   const [sound, setSound] = useState(null);
   const router = useRouter();
+  const [secondsSpent, setSecondsSpent] = useState(0); // State to hold seconds spent
+  // Load sound once when the component mounts
+  
+
+  // Load the sound when the component mounts
+  useEffect(() => {
+    async function loadSound() {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          require('../assets/countdown.wav') // Path to your sound file
+        );
+        setSound(sound); // Store the sound object
+        await sound.replayAsync(); // Play the sound as soon as it's loaded
+      } catch (error) {
+        console.error('Error loading sound:', error);
+      }
+    }
+
+    loadSound(); // Call the function to load and play the sound
+
+    // Cleanup when the component unmounts
+    return () => {
+      if (sound) {
+        sound.unloadAsync(); // Unload the sound to avoid memory leaks
+      }
+    };
+  }, []); // This runs only once when the component is mounted
+
+  
+  useEffect(() => {
+    console.log('Workout screen opened! Calling incrementWorkoutCount()'); // Debugging log
+    incrementWorkoutCount();
+  }, []);
+
 
   const fetchWorkoutData = async () => {
     const options = {
@@ -69,8 +107,6 @@ const WorkoutView = () => {
       console.error('Error loading weights:', error);
     }
   };
-  
-  
 
   const saveWeights = async (updatedWeights) => {
     try {
@@ -116,6 +152,7 @@ const WorkoutView = () => {
     let interval;
     if (isTimerActive && timer > 0) {
       interval = setInterval(() => {
+        incrementTimeSpent()
         setTimer((prev) => {
           if (prev === 4) {
             playSound();
@@ -142,19 +179,24 @@ const WorkoutView = () => {
     }
   };
 
-  const handleNext = () => {
-    setCurrentExerciseIndex((prevIndex) => Math.min(prevIndex + 1, exercises.length - 1));
-    setTimer(30);
-  };
 
-  const handleDone = () => {
-    if (currentExerciseIndex === exercises.length - 1) {
-      router.push('/home');
-    } else {
-      setCompletedExercises((prev) => [...prev, currentExerciseIndex]);
-      handleNext();
+  const handleNext = () => {
+    if (currentExerciseIndex < exercises.length - 1) {
+      setCurrentExerciseIndex((prevIndex) => prevIndex + 1); // Move to the next exercise
+      playCountdownSound(); // Play countdown sound on exercise change
     }
   };
+  
+  
+  const handleDone = () => {
+    if (currentExerciseIndex === exercises.length - 1) {
+      router.push('/home'); // Go back to home if done with workout
+    } else {
+      setCompletedExercises(prev => [...prev, currentExerciseIndex]);
+      handleNext(); // Move to next exercise and play countdown
+    }
+  };
+  
 
   const goToNextVideo = () => {
     if (currentVideoIndex < exercises.length - 1) {
@@ -177,6 +219,7 @@ const WorkoutView = () => {
             resizeMode="cover"
           />
         )}
+         
 
         <View style={styles.timerContainer}>
           <Text style={styles.exerciseTitle}>{currentExercise.exercise?.name}</Text>
@@ -399,4 +442,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WorkoutView;
+export default WorkoutView

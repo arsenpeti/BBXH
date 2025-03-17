@@ -1,64 +1,104 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Animatable from 'react-native-animatable';
+import { useFocusEffect } from 'expo-router';
+import { getWorkoutCount } from '../workoutStorage';
 
-const ProfileScreen = (props) => {
+const ProfileScreen = () => {
+  const [totalTime, setTotalTime] = useState(0);
+  const [workoutCount, setWorkoutCount] = useState(0);
+
+  // Fetch workout count when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const fetchWorkoutCount = async () => {
+        console.log('Fetching workout count...'); // Debugging log
+        const count = await getWorkoutCount();
+        console.log('Workout count set to:', count); // Debugging log
+        setWorkoutCount(count);
+      };
+      fetchWorkoutCount();
+    }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchTime = async () => {
+        try {
+          const storedTime = await AsyncStorage.getItem('timeSpent');
+          const totalSeconds = storedTime ? parseInt(storedTime, 10) : 0;
+          console.log('Retrieved Time Spent in minutes:', totalSeconds);
+          setTotalTime(Math.floor(totalSeconds / 60)); // Update the total time state
+        } catch (error) {
+          console.error('Error retrieving time spent:', error);
+        }
+      };
+      fetchTime();
+    }, [])
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Header with gradient */}
-      <LinearGradient 
-        colors={['#ffd9e5', '#E84479']}  // Pink gradient only
-        start={[0, 0]} 
-        end={[0, 1]} 
-        locations={[0, 1]}  // Smooth gradient transition
+      <LinearGradient
+        colors={['#ffd9e5', '#E84479']}
+        start={[0, 0]}
+        end={[0, 1]}
+        locations={[0, 1]}
         style={styles.header}
       >
         <Text style={styles.username}>Jhon Doe</Text>
       </LinearGradient>
 
-      {/* Stats Section */}
       <View style={styles.statsContainer}>
+        {/* Workouts */}
         <View style={styles.statBox}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
             <FontAwesome5 name="dumbbell" size={24} color="#FF1493" />
           </Animatable.View>
-          <Text style={styles.statValue}>120</Text>
+          <Text style={styles.statValue}>{workoutCount}</Text>
           <Text style={styles.statLabel}>Workouts</Text>
         </View>
+
+        {/* Minutes */}
         <View style={styles.statBox}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
             <FontAwesome5 name="clock" size={24} color="#FF1493" />
           </Animatable.View>
-          <Text style={styles.statValue}>4,320</Text>
+          <Text style={styles.statValue}>{totalTime}</Text>
           <Text style={styles.statLabel}>Minutes</Text>
         </View>
       </View>
 
-      {/* Days Active Section */}
-      <View style={[styles.statsContainer, { marginTop: 40 }]}> 
+      {/* Days Active */}
+      <View style={[styles.statsContainer, { marginTop: 40 }]}>
         <View style={styles.statBoxRow}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
             <FontAwesome5 name="calendar-check" size={28} color="#FF1493" style={styles.iconLeft} />
           </Animatable.View>
           <View>
-            <Text style={styles.statValue}>28</Text>
+            <Text style={styles.statValue}>0</Text>
             <Text style={styles.statLabel}>Days Active</Text>
           </View>
         </View>
       </View>
 
-      {/* Recent Activities Section */}
-      <View style={[styles.statsContainer, { marginTop: 40 }]}> 
+      {/* Recent Activities - FIXED TEXT ERROR HERE */}
+      <View style={[styles.statsContainer, { marginTop: 40 }]}>
         <View style={styles.statBoxRow}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
             <FontAwesome5 name="history" size={28} color="#FF1493" style={styles.iconLeft} />
           </Animatable.View>
           <View>
             <Text style={styles.statValue}>Recent Activities</Text>
-            <Text style={styles.statLabel}>🏋️ Chest Day - 45 min</Text>
-            <Text style={styles.statLabel}>🏃‍♂️ Cardio - 30 min</Text>
+            <Text style={styles.statLabel}>
+              <Text style={{ fontWeight: 'bold' }}>🏋️ Chest Day</Text> - min
+            </Text>
+            <Text style={styles.statLabel}>
+              <Text style={{ fontWeight: 'bold' }}>🏃‍♂️ Cardio</Text> - min
+            </Text>
           </View>
         </View>
       </View>
@@ -66,18 +106,16 @@ const ProfileScreen = (props) => {
   );
 };
 
-
-
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: '#F0F4FF',
     alignItems: 'center',
-    paddingBottom: 60,  // Increased bottom padding for more space
+    paddingBottom: 60,
   },
   header: {
     width: '100%',
-    paddingVertical: 100,  // Increased padding for a taller gradient
+    paddingVertical: 100,
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -92,7 +130,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '90%',
-    marginTop: 40,  // Increased marginTop to create more space between gradient and stats
+    marginTop: 40,
   },
   statBox: {
     alignItems: 'center',
@@ -134,4 +172,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileScreen;
-  
