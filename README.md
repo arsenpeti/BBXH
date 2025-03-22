@@ -1,50 +1,30 @@
-# Welcome to your Expo app 👋
+Auro Fitness App 🏋️‍♂️
+Your Ultimate Fitness Companion – Anytime, Anywhere!
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Auro is a powerful and easy-to-use fitness app designed to help you achieve your workout goals, whether you prefer training at home or in the gym. With personalized workout plans, a weight tracker, and progress monitoring features, Auro keeps you motivated and on track to reach your fitness milestones.
 
-## Get started
+Key Features
+🔥 Home & Gym Workout Plans – Choose between home-based workouts or gym routines tailored to your goals. Each day brings a new set of exercises to keep your training fresh and exciting.
 
-1. Install dependencies
+📊 Weight Tracker – Monitor your weight progress over time and stay motivated to reach your fitness targets.
 
-   ```bash
-   npm install
-   ```
+✅ Workout Completion Tracker – Mark your workouts as done and track your consistency with ease.
 
-2. Start the app
+⏱️ Minutes Spent Training – Keep track of the time you've dedicated to your fitness journey.
 
-   ```bash
-    npx expo start
-   ```
+🔄 Daily Exercise Refresh – Get a variety of exercises each day based on your selected workout mode (Home or Gym).
 
-In the output, you'll find options to open the app in a
+⚡ Simple & Intuitive UI – A clean and easy-to-navigate interface that lets you focus on what truly matters—your workout!
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Whether you're a beginner or an advanced athlete, Auro is your go-to fitness partner, helping you stay committed and consistent on your journey to a stronger, healthier you!
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+🚀 Download now and start your transformation today!
 
-## Get a fresh project
+This description highlights all the key features of your app in a way that is engaging and motivating. You can tweak it based on any additional features or unique elements you'd like to emphasize. Let me know if you'd like any changes! 💪🔥
 
-When you're ready, run:
+Here are some screenshots for the BBXH project:
 
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+![Screenshot 1](screenshots/BBXH_1.png)
+![Screenshot 2](screenshots/BBXH_2.png)
+![Screenshot 3](screenshots/BBXH_3.png)
+![Screenshot 4](screenshots/BBXH_4.png)
