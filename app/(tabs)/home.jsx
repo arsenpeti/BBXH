@@ -69,7 +69,7 @@ const App = () => {
         {/* Header outside SafeAreaView */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text style={styles.headerText}>Mirmegjesi {program?.name}</Text>
+            <Text style={styles.headerText}>Mirmengjesi {program?.name}</Text>
           </View>
           <View style={styles.headerContent}>
             {/* Horizontal ScrollView */}

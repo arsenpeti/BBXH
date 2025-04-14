@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -11,6 +11,17 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  // ✅ Step 3: If user already logged in, skip login
+  useEffect(() => {
+    const checkLogin = async () => {
+      const userEmail = await AsyncStorage.getItem('userEmail');
+      if (userEmail) {
+        router.replace('/home'); // skip login
+      }
+    };
+    checkLogin();
+  }, []);
 
   const handleLogin = async () => {
     if (email && password) {
@@ -25,7 +36,9 @@ const Login = () => {
         if (response.ok) {
           console.log("API HITTED");
           await AsyncStorage.setItem('userEmail', email);
-          router.push('/home');
+          
+          // ✅ Step 1: Replace instead of push
+          router.replace('/home');
         } else {
           setErrorMessage("Login failed. Please try again.");
         }
@@ -47,13 +60,12 @@ const Login = () => {
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        {/* Less harsh gradient overlay */}
         <LinearGradient
-          colors={['transparent', 'rgba(0, 0, 0, 0.3)']} // Reduced opacity for a natural look
+          colors={['transparent', 'rgba(0, 0, 0, 0.3)']}
           locations={[0.4, 1]}
           style={styles.gradient}
         />
-        
+
         <View style={styles.content}>
           <Text style={styles.logo}>Bodies By Xhes</Text>
 
@@ -107,14 +119,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     position: 'absolute',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)', // Lighter tint to retain clarity
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   gradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     width: '100%',
-    height: '40%', // Smaller gradient area for a more natural fade
+    height: '40%',
     zIndex: 1,
   },
   content: {

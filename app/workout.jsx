@@ -18,6 +18,7 @@ import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import useTimeSpent from './withTimeSpent';
 import { incrementWorkoutCount } from './workoutStorage';
+import useLastExercise from '../app/useLastExercise'; // Import the custom hook
 
 
 const { width } = Dimensions.get('window');
@@ -27,7 +28,7 @@ const VISIBLE_COUNT = 4;
 const WorkoutView = () => {
   const { id } = useLocalSearchParams();
   const {incrementTimeSpent} = useTimeSpent("timeSpent"); // Use the hook to track time spent
-
+  const { lastExercise, storeLastExercise } = useLastExercise();
   const [lineWidth, setLineWidth] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [timer, setTimer] = useState(30);
@@ -43,7 +44,7 @@ const WorkoutView = () => {
   const [secondsSpent, setSecondsSpent] = useState(0); // State to hold seconds spent
   // Load sound once when the component mounts
   
-
+  
   // Load the sound when the component mounts
   useEffect(() => {
     async function loadSound() {
@@ -189,13 +190,19 @@ const WorkoutView = () => {
   
   
   const handleDone = () => {
+    const currentExercise = exercises[currentExerciseIndex];
+    
+    // Store the current exercise as the last exercise
+    storeLastExercise(currentExercise.exercise);
+
     if (currentExerciseIndex === exercises.length - 1) {
-      router.push('/home'); // Go back to home if done with workout
+      router.push('/home');
     } else {
       setCompletedExercises(prev => [...prev, currentExerciseIndex]);
-      handleNext(); // Move to next exercise and play countdown
+      setCurrentExerciseIndex(prevIndex => prevIndex + 1);
     }
   };
+  
   
 
   const goToNextVideo = () => {
