@@ -3,11 +3,13 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'rea
 import { MaterialIcons } from '@expo/vector-icons';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BASE_URL from '../../api/baseUrl';
 
 const App = () => {
-  const [arr, setItems] = useState([1, 2, 3, 4]); // Days list
+  const [items, setItems] = useState([1, 2, 3, 4]); // Days list
   const [currentDay, setCurrentDay] = useState(1); // Track the current unlocked day
   const [isHome, setIsHome] = useState(true);
   const [programData, setProgramData] = useState(null); // Store the program data
@@ -30,9 +32,10 @@ const App = () => {
   useEffect(() => {
     const fetchProgramData = async () => {
       try {
+        console.log('Fetching program data from:', `${BASE_URL}/user/my-program`);
         const options = {
           method: 'GET',
-          url: 'https://stoplight.io/mocks/gym-app-ira/bodie-by-xhess/674100124/user/my-program',
+          url: `${BASE_URL}/user/my-program`,
           headers: {
             Accept: 'application/json',
             Authorization: 'Bearer 123', // Replace '123' with the actual bearer token
@@ -40,11 +43,38 @@ const App = () => {
         };
 
         const { data } = await axios.request(options);
+        console.log('Program data received:', data);
         setProgramData(data);
+
+        // Save the user's name to AsyncStorage for use in other components
+        if (data?.program?.name) {
+          await AsyncStorage.setItem('userName', data.program.name);
+          console.log('User name saved to AsyncStorage:', data.program.name);
+        } else {
+          // If no name is found in the API response, set a default name
+          await AsyncStorage.setItem('userName', 'User');
+          console.log('Default user name saved to AsyncStorage');
+        }
+
         setLoading(false); // Set loading to false when the data is fetched
       } catch (error) {
         console.error('Error fetching program data:', error);
+        // Set a default user name in case of API error
+        await AsyncStorage.setItem('userName', 'User');
+        console.log('Default user name saved due to API error');
         setLoading(false);
+
+        // For demo purposes, set some mock data to allow the app to function
+        setProgramData({
+          program: { name: 'User' },
+          weeks: [
+            {
+              order: 0,
+              name: 'Week 1',
+              workouts: [{ id: '1', imageUrl: 'https://via.placeholder.com/150' }]
+            }
+          ]
+        });
       }
     };
 

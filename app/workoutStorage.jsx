@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
 
 // Function to get the current workout count
 export const getWorkoutCount = async () => {
@@ -24,3 +25,11 @@ export const incrementWorkoutCount = async () => {
     console.error('Error updating workout count:', error);
   }
 };
+
+// Adding a default export to satisfy the router requirements
+const WorkoutStorage = () => {
+  // This is a dummy component that won't be rendered
+  return null;
+};
+
+export default WorkoutStorage;

@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Animatable from 'react-native-animatable';
 import { useFocusEffect } from 'expo-router';
-import axios from 'axios'; // Import axios
 import { getWorkoutCount } from '../workoutStorage';
 import useLastExercise from '../useLastExercise'; // Import the custom hook
 
@@ -14,6 +13,7 @@ const ProfileScreen = () => {
   const [totalTime, setTotalTime] = useState(0);
   const [workoutCount, setWorkoutCount] = useState(0);
   const { lastExercise } = useLastExercise(); // Get the last completed exercise
+  const safeLastExercise = lastExercise || { name: '', description: '' };
 
   // Fetch workout count when the screen is focused
   useFocusEffect(
@@ -44,39 +44,31 @@ const ProfileScreen = () => {
     }, [])
   );
 
+  // Fetch user name from AsyncStorage when the screen is focused
   useFocusEffect(
     useCallback(() => {
-      const fetchUserData = async () => {
+      const fetchUserName = async () => {
         try {
-          // Get the authentication token from AsyncStorage (assuming it's stored here)
-          const token = await AsyncStorage.getItem('authToken');
-          if (!token) {
-            console.error('No token found!');
-            setUserName('Guest');
-            return;
+          // Get the user name that was saved in the home component
+          const storedUserName = await AsyncStorage.getItem('userName');
+          if (storedUserName) {
+            console.log('Retrieved user name from AsyncStorage:', storedUserName);
+            setUserName(storedUserName);
+          } else {
+            console.log('No user name found in AsyncStorage, setting default name');
+            // If no name is found in AsyncStorage, set a default name
+            await AsyncStorage.setItem('userName', 'User');
+            setUserName('User'); // Use a default name instead of 'Guest'
           }
-
-          // Make the request using axios
-          const options = {
-            method: 'GET',
-            url: "stoplight.io/mocks/gym-app-ira/bodie-by-xhess/674100124/auth/login",
-            headers: {
-              Accept: 'application/json',
-              Authorization: `Bearer ${token}`, // Use the token for authentication
-            },
-          };
-
-          const response = await axios(options); // Make the request using axios
-
-          console.log('User data fetched:', response.data);
-          setUserName(response.data.name || 'No Name');
         } catch (error) {
-          console.error('Error fetching user data:', error);
-          setUserName('Guest'); // fallback
+          console.error('Error retrieving user name:', error);
+          // In case of error, set a default name
+          await AsyncStorage.setItem('userName', 'User');
+          setUserName('User'); // Use a default name instead of 'Guest'
         }
       };
 
-      fetchUserData();
+      fetchUserName();
     }, [])
   );
 
@@ -89,11 +81,10 @@ const ProfileScreen = () => {
         locations={[0, 1]}
         style={styles.header}
       >
-        <Text style={styles.username}>{userName}</Text> {/* Display the username */}
+        <Text style={styles.username}>{userName}</Text>
       </LinearGradient>
 
       <View style={styles.statsContainer}>
-        {/* Workouts */}
         <View style={styles.statBox}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
             <FontAwesome5 name="dumbbell" size={24} color="#FF1493" />
@@ -102,7 +93,6 @@ const ProfileScreen = () => {
           <Text style={styles.statLabel}>Workouts</Text>
         </View>
 
-        {/* Minutes */}
         <View style={styles.statBox}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
             <FontAwesome5 name="clock" size={24} color="#FF1493" />
@@ -112,7 +102,6 @@ const ProfileScreen = () => {
         </View>
       </View>
 
-      {/* Days Active */}
       <View style={[styles.statsContainer, { marginTop: 40 }]}>
         <View style={styles.statBoxRow}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
@@ -125,7 +114,6 @@ const ProfileScreen = () => {
         </View>
       </View>
 
-      {/* Recent Activities */}
       <View style={[styles.statsContainer, { marginTop: 40 }]}>
         <View style={styles.statBoxRow}>
           <Animatable.View animation="rotate" duration={2000} iterationCount={1}>
@@ -133,11 +121,11 @@ const ProfileScreen = () => {
           </Animatable.View>
           <View>
             <Text style={styles.statValue}>Recent Activities</Text>
-            {lastExercise ? (
-              <Text style={styles.statLabel}>
-                <Text style={styles.lastExerciseText}>Last Completed Exercise: {lastExercise.name}</Text>
-                <Text style={styles.exerciseDescription}>{lastExercise.description}</Text>
-              </Text>
+            {safeLastExercise.name ? (
+              <View>
+                <Text style={styles.lastExerciseText}>Last Completed Exercise: {safeLastExercise.name}</Text>
+                <Text style={styles.exerciseDescription}>{safeLastExercise.description}</Text>
+              </View>
             ) : (
               <Text style={styles.noExerciseText}>No recent activities found.</Text>
             )}
@@ -210,6 +198,21 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: '#666',
+  },
+  lastExerciseText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  exerciseDescription: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 5,
+  },
+  noExerciseText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
 });
 
