@@ -1,84 +1,195 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // Correct import for Expo
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ImageBackground, 
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  Alert,
+  StatusBar
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiClient from '../api/apiClient';
 
 const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const handleLogin = async () => {
+    console.log('Login button pressed'); // Debug log
+    
+    if (!email || !password) {
+      setErrorMessage('Email and password are required.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const data = await apiClient.post('/auth/login', { email, password });
+      
+      // Store the authentication token
+      await AsyncStorage.setItem('authToken', data.token);
+      await AsyncStorage.setItem('userEmail', email);
+      
+      // Store user data if available
+      if (data.user) {
+        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      }
+      
+      router.replace('/home');
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage(error.message || 'An error occurred. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    console.log('Forgot password pressed'); // Debug log
+    router.push('/forgot-password');
+  };
+
+  // Test function to verify touch events work
+  const testTouch = () => {
+    console.log('Test button pressed');
+    Alert.alert('Test', 'Touch events are working!');
+  };
+
   return (
-    <View style={styles.container}>
-      {/* Background Image */}
-      <Image
-        source={require('../assets/images/Rectangle 23.png')} // Ensure the image path is correct
-        style={styles.backgroundImage}
-        resizeMode="cover" // Ensure the image covers the entire screen
-      />
-
-      {/* Linear Gradient Overlay */}
-      <LinearGradient
-        colors={['transparent', '#060A11']} // Transparent at the top, dark color for search bars and button
-        locations={[0, 0.6]} // The gradient starts transparent and then turns dark at around 60% of the height
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }} // Gradient starts at the top
-        end={{ x: 0, y: 1 }} // Gradient ends at the bottom
-      />
-
-      {/* Main Content */}
-      <View style={styles.content}>
-        {/* Logo */}
-        <Text style={styles.logo}>Bodies By Xhes</Text>
-
-        {/* Input fields */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            placeholderTextColor="#9CA3AF"
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <KeyboardAvoidingView 
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ImageBackground
+          source={require('../assets/images/Rectangle 23.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        >
+          <LinearGradient
+            colors={['transparent', 'rgba(0, 0, 0, 0.3)']}
+            locations={[0.4, 1]}
+            style={styles.gradient}
+            pointerEvents="none"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#9CA3AF"
-            secureTextEntry
-          />
-        </View>
 
-        {/* Login Button */}
-        <TouchableOpacity style={styles.loginButton} onPress={() => { /* Add login functionality here */ }}>
-          <Text style={styles.loginButtonText}>Log In</Text>
-        </TouchableOpacity> 
-      </View>
-    </View>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
+            <View style={styles.logoContainer}>
+              <Text style={styles.logo}>Bodies By Xhes</Text>
+            </View>
+
+            <View style={styles.formContainer}>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={(text) => {
+            
+                    setEmail(text);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={true}
+                  selectTextOnFocus={true}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={(text) => {
+                   
+                    setPassword(text);
+                  }}
+                  editable={true}
+                  selectTextOnFocus={true}
+                />
+              </View>
+
+              {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+              <TouchableOpacity
+                style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+                onPress={handleLogin}
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.loginButtonText}>
+                  {isLoading ? 'Logging in...' : 'Log In'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={handleForgotPassword}
+                activeOpacity={0.7}
+                style={styles.forgotPasswordButton}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </ImageBackground>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,               // Ensures the container fills the screen
-    width: '100%',         // Full width of the container
-    height: '100%',        // Full height of the container
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   backgroundImage: {
-    width: '100%',         // Make sure the image takes up full width
-    height: '100%',        // Make sure the image takes up full height
-    position: 'absolute',  // Position the image behind everything
-    top: 0,
-    left: 0,
-    zIndex: -1,            // Ensures the image is behind all other components
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   gradient: {
-    position: 'absolute',  // Make sure the gradient is on top of the image
-    bottom: 0,             // Apply gradient only to the bottom
+    position: 'absolute',
+    bottom: 0,
     left: 0,
     width: '100%',
-    height: '50%',         // Gradient covers the bottom 50% of the screen (adjust if needed)
-    zIndex: 1,             // Ensure gradient is above the image but below the content
+    height: '60%',
+    zIndex: 1,
   },
-  content: {
-    flex: 1,                // Makes the content take up available space
-    justifyContent: 'flex-end',  // Align content at the bottom of the screen (for input and button)
-    width: '100%',          // Full width
-    paddingBottom: 20,      // Adds space at the bottom of the screen
-    alignItems: 'center',   // Center content horizontally
-    zIndex: 2,              // Ensures the content stays on top of the gradient and image
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 50 : 20,
+    minHeight: '100%',
+    zIndex: 2,
+  },
+  logoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 250,
   },
   logo: {
     fontSize: 32,
@@ -86,38 +197,64 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     color: '#FFFFFF',
     textAlign: 'center',
-    position: 'absolute',   // Position logo absolutely within the container
-    top: '40%',             // Position it around the middle of the screen
+  },
+  formContainer: {
     width: '100%',
+    alignItems: 'center',
+    paddingTop: 20,
+    zIndex: 3, // Ensure form is above everything
   },
   inputContainer: {
     width: '100%',
-    marginTop: 24,            // Space between the logo and inputs
-    alignItems: 'center',     // Center the inputs horizontally
+    alignItems: 'center',
+    zIndex: 3,
   },
   input: {
-    width: 327,              // Fixed width for inputs
-    height: 44,              // Fixed height for inputs
-    backgroundColor: '#EEF2F5', // Light background color for input fields
-    paddingLeft: 12,         // Padding inside input fields
-    marginBottom: 12,        // Space between input fields
-    borderRadius: 8,         // Rounded corners for input fields
+    width: '100%',
+    maxWidth: 327,
+    height: 44,
+    backgroundColor: '#EEF2F5',
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderRadius: 8,
     fontSize: 14,
-    color: '#9CA3AF',        // Text color inside input fields
+    color: '#000',
+    zIndex: 3,
   },
   loginButton: {
-    width: 327,              // Fixed width for the button
-    height: 43,              // Fixed height for the button
-    backgroundColor: '#E84479', // Button color
-    justifyContent: 'center', // Center the button text
-    alignItems: 'center',    // Center the button horizontally
-    borderRadius: 8,         // Rounded corners for the button
-    marginTop: 10,           // Space between inputs and the button (reduced to lift the button)
+    width: '100%',
+    maxWidth: 327,
+    height: 43,
+    backgroundColor: '#E84479',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginTop: 10,
+    zIndex: 3,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#ccc',
   },
   loginButtonText: {
-    color: '#fff',           // White text on the button
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  forgotPasswordButton: {
+    marginTop: 10,
+    padding: 10,
+    zIndex: 3,
+  },
+  forgotPasswordText: {
+    color: '#E84479',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 10,
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
