@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  Alert
+  Alert,
+  StatusBar
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -68,9 +69,10 @@ const Login = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView 
         style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ImageBackground
@@ -89,14 +91,13 @@ const Login = () => {
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bounces={false}
           >
             <View style={styles.logoContainer}>
               <Text style={styles.logo}>Bodies By Xhes</Text>
             </View>
 
             <View style={styles.formContainer}>
-            a
-
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
@@ -158,6 +159,7 @@ const Login = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
   },
   keyboardContainer: {
     flex: 1,
@@ -179,9 +181,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 50,
+    paddingBottom: Platform.OS === 'ios' ? 50 : 20,
     minHeight: '100%',
-    zIndex: 2, // Ensure content is above gradient
+    zIndex: 2,
   },
   logoContainer: {
     flex: 1,
