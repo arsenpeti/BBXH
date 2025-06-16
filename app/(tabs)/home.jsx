@@ -16,8 +16,6 @@ const App = () => {
   const [loading, setLoading] = useState(true); // Track loading state
   const router = useRouter();
 
-  // const navigation = useNavigation
-
   const handlePress = () => {
     if (isHome) {
       setIsHome(false);
@@ -30,41 +28,37 @@ const App = () => {
 
   // Fetch program data from the API
   useEffect(() => {
-    const fetchProgramData = async () => {
+    const fetchData = async () => {
       try {
-        console.log('Fetching program data from:', `${BASE_URL}/user/my-program`);
-        const options = {
-          method: 'GET',
-          url: `${BASE_URL}/user/my-program`,
+        setLoading(true);
+        const token = await AsyncStorage.getItem('authToken');
+        
+        // Fetch purchased programs
+        const response = await axios.get(`${BASE_URL}/programs/user/purchased`, {
           headers: {
             Accept: 'application/json',
-            Authorization: 'Bearer 123', // Replace '123' with the actual bearer token
+            Authorization: `Bearer ${token}`,
           },
+        });
+
+        // Transform the purchased programs data to match the expected format
+        const transformedData = {
+          program: { name: 'User' },
+          weeks: response.data.programs.map((program, index) => ({
+            order: index,
+            name: program.name,
+            workouts: [{
+              id: program.id,
+              imageUrl: program.imageUrl || 'https://via.placeholder.com/150'
+            }]
+          }))
         };
 
-        const { data } = await axios.request(options);
-        console.log('Program data received:', data);
-        setProgramData(data);
-
-        // Save the user's name to AsyncStorage for use in other components
-        if (data?.program?.name) {
-          await AsyncStorage.setItem('userName', data.program.name);
-          console.log('User name saved to AsyncStorage:', data.program.name);
-        } else {
-          // If no name is found in the API response, set a default name
-          await AsyncStorage.setItem('userName', 'User');
-          console.log('Default user name saved to AsyncStorage');
-        }
-
-        setLoading(false); // Set loading to false when the data is fetched
-      } catch (error) {
-        console.error('Error fetching program data:', error);
-        // Set a default user name in case of API error
-        await AsyncStorage.setItem('userName', 'User');
-        console.log('Default user name saved due to API error');
+        setProgramData(transformedData);
         setLoading(false);
-
-        // For demo purposes, set some mock data to allow the app to function
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Set default data in case of error
         setProgramData({
           program: { name: 'User' },
           weeks: [
@@ -75,10 +69,11 @@ const App = () => {
             }
           ]
         });
+        setLoading(false);
       }
     };
 
-    fetchProgramData();
+    fetchData();
   }, []);
 
   if (loading) {
@@ -114,11 +109,10 @@ const App = () => {
                 return (
                   <View key={index} style={styles.circle}>
                     <Text style={styles.circleText}>{day}</Text>
-                    {/* If the current day is locked, add the lock icon */}
                     {day > currentDay && (
                       <MaterialIcons
                         name="lock"
-                        size={16} // Reduced lock icon size
+                        size={16}
                         color="#fff"
                         style={styles.lockIcon}
                       />
@@ -153,31 +147,26 @@ const App = () => {
               key={index}
               style={styles.containerBox}
               onPress={() => {
-                // Unlock next day when a day is clicked
                 if (index + 1 === currentDay) {
                   setCurrentDay((prevDay) => prevDay + 1);
                 }
-                // console.log(`workout id ${week.workouts[0].id}`)
-                // Pass the workout ID to the next page
-                const workoutId = week.workouts[0].id
+                const workoutId = week.workouts[0].id;
                 router.push({
                   pathname: 'workout',
                   params: { id: workoutId },
                 });
               }}
             >
-              {/* Image Section */}
               <Image
-                source={{ uri: week?.workouts[0]?.imageUrl || 'https://via.placeholder.com/150' }} // Use the workout's image URL if available
+                source={{ uri: week?.workouts[0]?.imageUrl || 'https://via.placeholder.com/150' }}
                 style={styles.image}
               />
-              {/* Text Section */}
               <View style={styles.textSection}>
-                <Text style={styles.weekText}>Week {week?.order + 1}</Text>
-                <Text style={styles.containerText}>{week?.name}</Text>
+                <Text style={styles.weekText}>{week.name}</Text>
+                <Text style={styles.containerText}>{week.description || `Program ${index + 1}`}</Text>
                 <View style={styles.timerSection}>
                   <FontAwesome5 name="clock" size={14} color="#999" />
-                  <Text style={styles.timerText}>30 seconds</Text>
+                  <Text style={styles.timerText}>{week.duration || '30'} seconds</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -187,6 +176,7 @@ const App = () => {
     </>
   );
 };
+
 const styles = StyleSheet.create({
   ara: {
     paddingBottom: -50,
@@ -308,6 +298,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginLeft: 5,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+    color: '#000',
   },
 });
 

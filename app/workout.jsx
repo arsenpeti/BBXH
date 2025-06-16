@@ -1,198 +1,142 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  Animated,
   Dimensions,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
 } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Video } from 'expo-av';
-import axios from 'axios';
 import { useLocalSearchParams } from 'expo-router/build/hooks';
-import { Audio } from 'expo-av';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+
+// Import custom hooks
 import useTimeSpent from './withTimeSpent';
 import { incrementWorkoutCount } from './workoutStorage';
-import useLastExercise from '../app/useLastExercise'; // Import the custom hook
+import useLastExercise from '../app/useLastExercise';
+import useWorkoutData from '../hooks/useWorkoutData';
+import useTimer from '../hooks/useTimer';
+import useAudio from '../hooks/useAudio';
 
+// Import components
+import VideoPlayer from '../components/VideoPlayer';
+import ExerciseHeader from '../components/ExerciseHeader';
+import SectionHighlight from '../components/SectionHighlight';
+import ExerciseList from '../components/ExerciseList';
+import ActionButton from '../components/ActionButton';
 
-const { width } = Dimensions.get('window');
-const IMG_HEIGHT = 235;
 const VISIBLE_COUNT = 4;
+const { width, height } = Dimensions.get('window');
+
+// Loading Component
+const WorkoutLoadingScreen = () => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Pulse animation
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseAnimation.start();
+
+    return () => {
+      pulseAnimation.stop();
+    };
+  }, []);
+
+  return (
+    <View style={styles.loadingContainer}>
+      <Animated.Text
+        style={[
+          styles.loadingTitle,
+          {
+            transform: [{ scale: pulseAnim }],
+          },
+        ]}
+      >
+        Bodies By Xhes
+      </Animated.Text>
+    </View>
+  );
+};
 
 const WorkoutView = () => {
   const { id } = useLocalSearchParams();
-  const {incrementTimeSpent} = useTimeSpent("timeSpent"); // Use the hook to track time spent
+  const router = useRouter();
+
+  // ALL HOOKS MUST BE CALLED FIRST - NO EXCEPTIONS
+  const { incrementTimeSpent } = useTimeSpent("timeSpent");
   const { lastExercise, storeLastExercise } = useLastExercise();
-  const [lineWidth, setLineWidth] = useState(0);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [timer, setTimer] = useState(30);
+  const { workoutData, exercises, weights, loading, updateWeight } = useWorkoutData(id);
+  const { playSound } = useAudio(require('../assets/countdown.wav'));
+  
+  // Local state - ALL useState calls together
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [weights, setWeights] = useState([]); // State to hold weights
   const [focusedInputIndex, setFocusedInputIndex] = useState(null);
   const [completedExercises, setCompletedExercises] = useState([]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [workoutData, setWorkoutData] = useState(null);
-  const [exercises, setExercises] = useState([]);
-  const [sound, setSound] = useState(null);
-  const router = useRouter();
-  const [secondsSpent, setSecondsSpent] = useState(0); // State to hold seconds spent
-  // Load sound once when the component mounts
-  
-  
-  // Load the sound when the component mounts
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+
+  // Timer hook - using default values to prevent conditional calls
+  const { timer, isTimerActive, toggleTimer } = useTimer(
+    30, 
+    null, 
+    incrementTimeSpent, 
+    playSound
+  );
+
+  // useEffect - always called
   useEffect(() => {
-    async function loadSound() {
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          require('../assets/countdown.wav') // Path to your sound file
-        );
-        setSound(sound); // Store the sound object
-        await sound.replayAsync(); // Play the sound as soon as it's loaded
-      } catch (error) {
-        console.error('Error loading sound:', error);
-      }
-    }
-
-    loadSound(); // Call the function to load and play the sound
-
-    // Cleanup when the component unmounts
-    return () => {
-      if (sound) {
-        sound.unloadAsync(); // Unload the sound to avoid memory leaks
-      }
-    };
-  }, []); // This runs only once when the component is mounted
-
-  
-  useEffect(() => {
-    console.log('Workout screen opened! Calling incrementWorkoutCount()'); // Debugging log
+    console.log('Workout screen opened! Calling incrementWorkoutCount()');
     incrementWorkoutCount();
   }, []);
 
+  // NOW we can do conditional rendering - all hooks are called above
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <WorkoutLoadingScreen />
+      </SafeAreaView>
+    );
+  }
 
-  const fetchWorkoutData = async () => {
-    const options = {
-      method: 'GET',
-      url: `https://stoplight.io/mocks/gym-app-ira/bodie-by-xhess/674100124/user/workouts/${id}`,
-      headers: { Accept: 'application/json', Authorization: 'Bearer 123' },
-    };
+  if (!exercises || exercises.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, styles.loadingContainer]}>
+          <Text>No exercises found</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-    try {
-      const { data } = await axios.request(options);
-    
-      setWorkoutData(data.workout);
-      setExercises(data.exercises);
-  
-      // Load saved weights
-      loadWeights(data.exercises.length);
-    } catch (error) {
-      console.error('Error fetching workout data:', error);
-    }
-  };
-
-  const loadWeights = async (exerciseCount) => {
-    try {
-      const savedWeights = await AsyncStorage.getItem(`weights_${id}`);
-      if (savedWeights) {
-        setWeights(JSON.parse(savedWeights));
-      } else {
-        setWeights(Array(exerciseCount).fill('')); // Initialize if no saved weights
-      }
-    } catch (error) {
-      console.error('Error loading weights:', error);
-    }
-  };
-
-  const saveWeights = async (updatedWeights) => {
-    try {
-      await AsyncStorage.setItem(`weights_${id}`, JSON.stringify(updatedWeights));
-    } catch (error) {
-      console.error('Error saving weights:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchWorkoutData();
-    loadWeights(); // Load saved weights on component mount
-  }, []);
-
-  useEffect(() => {
-    if (weights.length > 0) {
-      saveWeights(weights);
-    }
-  }, [weights]);
-
+  // Safe to access exercises now since we've checked above
   const currentExercise = exercises[currentExerciseIndex] || {};
   const currentVideoUri = currentExercise.exercise?.videoUrl || '';
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-
-  useEffect(() => {
-    async function loadSound() {
-      const { sound } = await Audio.Sound.createAsync(
-        require('../assets/countdown.wav')
-      );
-      setSound(sound);
-    }
-
-    loadSound();
-
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    let interval;
-    if (isTimerActive && timer > 0) {
-      interval = setInterval(() => {
-        incrementTimeSpent()
-        setTimer((prev) => {
-          if (prev === 4) {
-            playSound();
-          }
-          return Math.max(prev - 1, 0);
-        });
-      }, 1000);
-    } else if (timer === 0) {
-      setIsTimerActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerActive, timer]);
-
-  const playSound = async () => {
-    if (sound) {
-      await sound.replayAsync();
-    }
-  };
-
-  const toggleTimer = () => {
-    setIsTimerActive(!isTimerActive);
-    if (!isTimerActive) {
-      setTimer(30);
-    }
-  };
-
+  const visibleExercises = exercises.slice(currentExerciseIndex, currentExerciseIndex + VISIBLE_COUNT);
 
   const handleNext = () => {
     if (currentExerciseIndex < exercises.length - 1) {
-      setCurrentExerciseIndex((prevIndex) => prevIndex + 1); // Move to the next exercise
-      playCountdownSound(); // Play countdown sound on exercise change
+      setCurrentExerciseIndex((prevIndex) => prevIndex + 1);
+      playSound();
     }
   };
-  
-  
+
   const handleDone = () => {
     const currentExercise = exercises[currentExerciseIndex];
     
-    // Store the current exercise as the last exercise
     storeLastExercise(currentExercise.exercise);
 
     if (currentExerciseIndex === exercises.length - 1) {
@@ -202,8 +146,6 @@ const WorkoutView = () => {
       setCurrentExerciseIndex(prevIndex => prevIndex + 1);
     }
   };
-  
-  
 
   const goToNextVideo = () => {
     if (currentVideoIndex < exercises.length - 1) {
@@ -213,98 +155,59 @@ const WorkoutView = () => {
     }
   };
 
-  const visibleExercises = exercises.slice(currentExerciseIndex, currentExerciseIndex + VISIBLE_COUNT);
+  const handleWeightChange = (index, value) => {
+    updateWeight(index, value);
+  };
+
+  const handleInputFocus = (index) => {
+    setFocusedInputIndex(index);
+  };
+
+  const handleInputBlur = () => {
+    setFocusedInputIndex(null);
+  };
+
+  const toggleDescription = () => {
+    setIsDescriptionExpanded(!isDescriptionExpanded);
+  };
+
+  const handleActionButton = () => {
+    goToNextVideo();
+    handleDone();
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {currentVideoUri && (
-          <Video
-            source={{ uri: currentVideoUri }}
-            style={styles.video}
-            controls
-            resizeMode="cover"
-          />
-        )}
-         
+        <VideoPlayer videoUri={currentVideoUri} />
 
-        <View style={styles.timerContainer}>
-          <Text style={styles.exerciseTitle}>{currentExercise.exercise?.name}</Text>
-          <TouchableOpacity onPress={toggleTimer} style={styles.timerTouchable}>
-            <FontAwesome5
-              name="stopwatch"
-              size={18}
-              color={isTimerActive ? '#FF69B4' : '#9CA3AF'}
-            />
-            <Text style={[styles.timerText, { color: isTimerActive ? '#FF69B4' : '#9CA3AF' }]}>
-              {timer} sec
-            </Text>
-          </TouchableOpacity>
-          <Text style={styles.description}>
-            {isDescriptionExpanded
-              ? currentExercise.exercise?.description
-              : currentExercise.exercise?.description?.length > 100
-              ? `${currentExercise.exercise?.description.substring(0, 100)}...`
-              : currentExercise.exercise?.description}
-          </Text>
-          {currentExercise.exercise?.description?.length > 15 && (
-            <TouchableOpacity onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-              <Text style={styles.readMoreText}>{isDescriptionExpanded ? 'See less' : 'See more'}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <ExerciseHeader
+          exerciseName={currentExercise.exercise?.name}
+          description={currentExercise.exercise?.description}
+          isDescriptionExpanded={isDescriptionExpanded}
+          onToggleDescription={toggleDescription}
+          timer={timer}
+          isTimerActive={isTimerActive}
+          onToggleTimer={toggleTimer}
+        />
 
-        <View style={styles.highlightContainer}>
-          <Text
-            style={styles.boldHighlightedText}
-            onLayout={(event) => setLineWidth(event.nativeEvent.layout.width)}
-          >
-            Ushtrimet e dites
-          </Text>
-          <View style={[styles.highlightedLine, { width: lineWidth }]} />
-        </View>
+        <SectionHighlight title="Ushtrimet e dites" />
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {visibleExercises.map((exercise, index) => (
-            <View key={index} style={[styles.scrollItem, index === 0 ? styles.highlighted : null]}>
-              {index === 0 && (
-                <TouchableOpacity style={styles.playIcon}>
-                  <FontAwesome5 name={'play'} size={12} color={'#4B5563'} />
-                </TouchableOpacity>
-              )}
-              <View style={styles.textContainer}>
-                <Text style={styles.scrollText}>{exercise.exercise?.name}</Text>
-              </View>
-              <TextInput
-  style={[styles.weightInput, focusedInputIndex === index ? styles.focusedInput : styles.unfocusedInput]}
-  placeholder="Weight"
-  keyboardType="numeric"
-  value={weights[index]}
-  onFocus={() => setFocusedInputIndex(index)}
-  onBlur={() => setFocusedInputIndex(null)}
-  onChangeText={(text) => {
-    const updatedWeights = [...weights];
-    updatedWeights[index] = text;
-    setWeights(updatedWeights); // Updates and triggers AsyncStorage save
-  }}
-/>
-
-            </View>
-          ))}
-        </ScrollView>
+        <ExerciseList
+          exercises={visibleExercises}
+          weights={weights}
+          focusedInputIndex={focusedInputIndex}
+          currentExerciseIndex={currentExerciseIndex}
+          onWeightChange={handleWeightChange}
+          onInputFocus={handleInputFocus}
+          onInputBlur={handleInputBlur}
+        />
       </View>
 
-      <View style={[styles.buttonContainer, styles.nextButtonContainer]}>
-        <TouchableOpacity style={styles.nextButton} onPress={() => { goToNextVideo(); handleDone(); }}>
-          <Text style={styles.nextButtonText}>
-            {currentExerciseIndex === exercises.length - 1 ? 'Done' : 'Next'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <ActionButton
+        title={currentExerciseIndex === exercises.length - 1 ? 'Done' : 'Next'}
+        onPress={handleActionButton}
+      />
     </SafeAreaView>
   );
 };
@@ -316,137 +219,33 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: 16,
-    position: 'relative',
   },
-  video: {
-    width: width - 32,
-    height: IMG_HEIGHT,
-    borderRadius: 16,
-  },
-  exerciseNameContainer: {
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    marginVertical: 8,
-    width: '100%',
-  },
-  exerciseTitle: {
-    fontSize: 24,
-  },
-  timerTouchable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timerContainer: {
-    width: '100%',
-    alignItems: 'flex-start',
-    marginVertical: 8,
-    marginLeft: 25,
-    justifyContent: 'space-between',
-    gap: 5,
-  },
-  timerText: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  descriptionContainer: {
-    marginVertical: 16,
-    width: '100%',
-  },
-  description: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  readMoreText: {
-    color: '#FF69B4',
-    fontSize: 14,
-  },
-  highlightContainer: {
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    width: '100%',
-    marginLeft: 7,
-  },
-  boldHighlightedText: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  highlightedLine: {
-    height: 2,
-    backgroundColor: '#FF69B4',
-  },
-  scrollView: {
+  loadingContainer: {
     flex: 1,
-    width: '100%',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  scrollItem: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    height: 55,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    marginBottom: 8,
-    marginLeft: 5,
-    marginRight: 5,
+    backgroundColor: '#FFF5F7',
   },
-  highlighted: {
-    backgroundColor: 'rgb(222, 223, 228)',
+  loadingTitle: {
+    fontSize: 32,
+    fontFamily: 'Playfair Display',
+    color: '#E84479',
+    textAlign: 'center',
+    letterSpacing: 1,
   },
-  scrollText: {
-    fontSize: 16,
-  },
-  playIcon: {
-    marginRight: 8,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  weightInput: {
-    width: 70,
-    height: 40,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    fontSize: 16,
-  },
-  unfocusedInput: {
-    color: '#6B7280',
-  },
-  focusedInput: {
-    backgroundColor: '#D1D5DB',
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  buttonContainer: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  nextButton: {
-    backgroundColor: '#FF69B4',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 30,
-  },
-  nextButtonContainer: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  icon: {
+  floatingElements: {
     position: 'absolute',
-    top: 20,
-    left: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  floatingEmoji: {
+    position: 'absolute',
+    fontSize: 24,
+    opacity: 0.6,
   },
 });
 
-export default WorkoutView
+export default WorkoutView;

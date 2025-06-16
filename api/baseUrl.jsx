@@ -1,4 +1,4 @@
-const BASE_URL = "https://stoplight.io/mocks/gym-app-ira/bodie-by-xhess/674100124"
+const BASE_URL = "https://bodies-by-jes.web.app/api"
 
 
 

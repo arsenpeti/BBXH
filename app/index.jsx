@@ -1,10 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ImageBackground, 
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  Alert
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
-import BASE_URL from '../api/baseUrl.jsx';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiClient from '../api/apiClient';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -12,130 +23,171 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  // ✅ Step 3: If user already logged in, skip login
-  useEffect(() => {
-    const checkLogin = async () => {
-      const userEmail = await AsyncStorage.getItem('userEmail');
-      if (userEmail) {
-        router.replace('/home'); // skip login
-      }
-    };
-    checkLogin();
-  }, []);
-
   const handleLogin = async () => {
-    if (email && password) {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${BASE_URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-
-        if (response.ok) {
-          console.log("API HITTED");
-          await AsyncStorage.setItem('userEmail', email);
-          
-          // ✅ Step 1: Replace instead of push
-          router.replace('/home');
-        } else {
-          setErrorMessage("Login failed. Please try again.");
-        }
-      } catch (error) {
-        console.error('Login error:', error);
-        setErrorMessage('An error occurred. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
+    console.log('Login button pressed'); // Debug log
+    
+    if (!email || !password) {
       setErrorMessage('Email and password are required.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const data = await apiClient.post('/auth/login', { email, password });
+      
+      // Store the authentication token
+      await AsyncStorage.setItem('authToken', data.token);
+      await AsyncStorage.setItem('userEmail', email);
+      
+      // Store user data if available
+      if (data.user) {
+        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      }
+      
+      router.replace('/home');
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage(error.message || 'An error occurred. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleForgotPassword = () => {
+    console.log('Forgot password pressed'); // Debug log
+    router.push('/forgot-password');
+  };
+
+  // Test function to verify touch events work
+  const testTouch = () => {
+    console.log('Test button pressed');
+    Alert.alert('Test', 'Touch events are working!');
+  };
+
   return (
-    <View style={styles.container}>
-      <ImageBackground
-        source={require('../assets/images/Rectangle 23.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <LinearGradient
-          colors={['transparent', 'rgba(0, 0, 0, 0.3)']}
-          locations={[0.4, 1]}
-          style={styles.gradient}
-        />
+        <ImageBackground
+          source={require('../assets/images/Rectangle 23.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        >
+          <LinearGradient
+            colors={['transparent', 'rgba(0, 0, 0, 0.3)']}
+            locations={[0.4, 1]}
+            style={styles.gradient}
+            pointerEvents="none"
+          />
 
-        <View style={styles.content}>
-          <Text style={styles.logo}>Bodies By Xhes</Text>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Username"
-              placeholderTextColor="#9CA3AF"
-              value={email}
-              onChangeText={setEmail}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
-
-          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleLogin}
-            disabled={isLoading}
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.loginButtonText}>
-              {isLoading ? 'Logging in...' : 'Log In'}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logo}>Bodies By Xhes</Text>
+            </View>
 
-          <TouchableOpacity onPress={() => router.push('/forgot-password')}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
-        </View>
-      </ImageBackground>
-    </View>
+            <View style={styles.formContainer}>
+            a
+
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={(text) => {
+            
+                    setEmail(text);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={true}
+                  selectTextOnFocus={true}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={(text) => {
+                   
+                    setPassword(text);
+                  }}
+                  editable={true}
+                  selectTextOnFocus={true}
+                />
+              </View>
+
+              {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+              <TouchableOpacity
+                style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+                onPress={handleLogin}
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.loginButtonText}>
+                  {isLoading ? 'Logging in...' : 'Log In'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={handleForgotPassword}
+                activeOpacity={0.7}
+                style={styles.forgotPasswordButton}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </ImageBackground>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   backgroundImage: {
     flex: 1,
     width: '100%',
     height: '100%',
-    position: 'absolute',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   gradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     width: '100%',
-    height: '40%',
+    height: '60%',
     zIndex: 1,
   },
-  content: {
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 50,
+    minHeight: '100%',
+    zIndex: 2, // Ensure content is above gradient
+  },
+  logoContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
-    width: '100%',
-    paddingBottom: 20,
+    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
+    minHeight: 250,
   },
   logo: {
     fontSize: 32,
@@ -143,17 +195,21 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     color: '#FFFFFF',
     textAlign: 'center',
-    position: 'absolute',
-    top: '40%',
+  },
+  formContainer: {
     width: '100%',
+    alignItems: 'center',
+    paddingTop: 20,
+    zIndex: 3, // Ensure form is above everything
   },
   inputContainer: {
     width: '100%',
-    marginTop: 24,
     alignItems: 'center',
+    zIndex: 3,
   },
   input: {
-    width: 327,
+    width: '100%',
+    maxWidth: 327,
     height: 44,
     backgroundColor: '#EEF2F5',
     paddingHorizontal: 12,
@@ -161,25 +217,34 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 14,
     color: '#000',
-    alignSelf: 'center',
+    zIndex: 3,
   },
   loginButton: {
-    width: 327,
+    width: '100%',
+    maxWidth: 327,
     height: 43,
     backgroundColor: '#E84479',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
     marginTop: 10,
+    zIndex: 3,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#ccc',
   },
   loginButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
+  forgotPasswordButton: {
+    marginTop: 10,
+    padding: 10,
+    zIndex: 3,
+  },
   forgotPasswordText: {
     color: '#E84479',
-    marginTop: 10,
     fontSize: 14,
     textAlign: 'center',
   },

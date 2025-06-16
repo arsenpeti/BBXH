@@ -13,6 +13,13 @@ export default function RootLayout() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="forgot-password"
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right'
+        }}
+      />
+      <Stack.Screen
         name="workout"
         options={{
           animationEnabled: false,
