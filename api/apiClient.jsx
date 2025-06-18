@@ -17,12 +17,16 @@ const apiClient = {
   request: async (endpoint, options = {}) => {
     try {
       const token = await apiClient.getAuthToken();
+      console.log('Making request to:', endpoint, 'with token:', token ? 'Token present' : 'No token');
       
       const headers = {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       };
+
+      console.log('Request headers:', headers);
 
       const response = await fetch(`${BASE_URL}${endpoint}`, {
         ...options,
@@ -30,13 +34,15 @@ const apiClient = {
       });
 
       const data = await response.json();
+      console.log('Response status:', response.status);
+      console.log('Response data:', data);
 
       if (!response.ok) {
         // Handle token expiration
         if (response.status === 401) {
+          console.log('Token expired or invalid, clearing credentials');
           // Clear stored credentials
           await AsyncStorage.multiRemove(['authToken', 'userData']);
-          // You might want to redirect to login here
           throw new Error('Session expired. Please login again.');
         }
         throw new Error(data.message || 'Something went wrong');

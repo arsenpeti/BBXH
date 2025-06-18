@@ -36,21 +36,35 @@ const Login = () => {
     setErrorMessage(null);
 
     try {
-      const data = await apiClient.post('/auth/login', { email, password });
+      console.log('Attempting login with email:', email);
+      const response = await apiClient.post('/auth/login', { email, password });
+      console.log('Login response:', response); // Log the full response
       
+      if (!response.token) {
+        throw new Error('Invalid response from server: No token received');
+      }
+
       // Store the authentication token
-      await AsyncStorage.setItem('authToken', data.token);
+      await AsyncStorage.setItem('authToken', response.token);
       await AsyncStorage.setItem('userEmail', email);
       
       // Store user data if available
-      if (data.user) {
-        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      if (response.user) {
+        await AsyncStorage.setItem('userData', JSON.stringify(response.user));
       }
+
+      // Verify token was stored
+      const storedToken = await AsyncStorage.getItem('authToken');
+      console.log('Stored token:', storedToken ? 'Token stored successfully' : 'Failed to store token');
       
       router.replace('/home');
     } catch (error) {
       console.error('Login error:', error);
-      setErrorMessage(error.message || 'An error occurred. Please try again later.');
+      if (error.message.includes('Session expired')) {
+        setErrorMessage('Your session has expired. Please login again.');
+      } else {
+        setErrorMessage(error.message || 'An error occurred. Please try again later.');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +18,9 @@ const useWorkoutData = (workoutId) => {
 
     try {
       setLoading(true);
+      console.log('Fetching workout data for ID:', workoutId);
       const { data } = await axios.request(options);
+      console.log('Workout API Response:', JSON.stringify(data, null, 2));
       
       setWorkoutData(data.workout);
       setExercises(data.exercises);
@@ -28,7 +29,7 @@ const useWorkoutData = (workoutId) => {
       await loadWeights(data.exercises.length);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching workout data:', error);
+      console.error('Error fetching workout data:', error.response?.data || error.message);
       setError(error);
       setLoading(false);
     }

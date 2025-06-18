@@ -14,6 +14,7 @@ const App = () => {
   const [isHome, setIsHome] = useState(true);
   const [programData, setProgramData] = useState(null); // Store the program data
   const [loading, setLoading] = useState(true); // Track loading state
+  const [errorMessage, setErrorMessage] = useState(null); // Track error message
   const router = useRouter();
 
   const handlePress = () => {
@@ -28,25 +29,42 @@ const App = () => {
 
   // Fetch program data from the API
   useEffect(() => {
+    console.log('Home screen mounted - Fetching all programs...'); // Updated log message
+    
     const fetchData = async () => {
       try {
         setLoading(true);
         const token = await AsyncStorage.getItem('authToken');
+        console.log('Auth Token:', token); // Log the token
         
-        // Fetch purchased programs
-        const response = await axios.get(`${BASE_URL}/programs/user/purchased`, {
+        if (!token) {
+          console.error('No auth token found');
+          setErrorMessage('Authentication required. Please login again.');
+          return;
+        }
+        
+        // Fetch all programs
+        console.log('Making API call to:', `${BASE_URL}/programs`);
+        const response = await axios.get(`${BASE_URL}/programs`, {
           headers: {
             Accept: 'application/json',
             Authorization: `Bearer ${token}`,
           },
         });
 
-        // Transform the purchased programs data to match the expected format
+        console.log('API Response:', JSON.stringify(response.data, null, 2)); // Log the full response
+
+        // Transform the programs data to match the expected format
         const transformedData = {
           program: { name: 'User' },
-          weeks: response.data.programs.map((program, index) => ({
+          weeks: response.data.map((program, index) => ({
             order: index,
             name: program.name,
+            description: program.description,
+            price: program.price,
+            isPublic: program.isPublic,
+            createdAt: program.createdAt,
+            updatedAt: program.updatedAt,
             workouts: [{
               id: program.id,
               imageUrl: program.imageUrl || 'https://via.placeholder.com/150'
@@ -54,10 +72,13 @@ const App = () => {
           }))
         };
 
+        console.log('Transformed Data:', JSON.stringify(transformedData, null, 2)); // Log the transformed data
+
         setProgramData(transformedData);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching data:', error.response?.data || error.message); // Log detailed error
+        setErrorMessage('Failed to load programs. Please try again.');
         // Set default data in case of error
         setProgramData({
           program: { name: 'User' },
@@ -74,7 +95,7 @@ const App = () => {
     };
 
     fetchData();
-  }, []);
+  }, []); // Empty dependency array means this runs once when component mounts
 
   if (loading) {
     return (
@@ -147,13 +168,10 @@ const App = () => {
               key={index}
               style={styles.containerBox}
               onPress={() => {
-                if (index + 1 === currentDay) {
-                  setCurrentDay((prevDay) => prevDay + 1);
-                }
-                const workoutId = week.workouts[0].id;
+                const programId = week.workouts[0].id;
                 router.push({
-                  pathname: 'workout',
-                  params: { id: workoutId },
+                  pathname: '/workout',
+                  params: { id: programId },
                 });
               }}
             >
