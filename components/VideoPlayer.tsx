@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Image, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Image, StyleSheet, Dimensions, TouchableOpacity, Animated } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,6 +16,23 @@ const VideoPlayer = ({ videoUri, imageUri }: VideoPlayerProps) => {
   const [videoError, setVideoError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<Video>(null);
+
+  // Simple rotation animation
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isVideoLoading) {
+      // Start simple spin animation
+      const spinAnimation = Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      );
+      spinAnimation.start();
+    }
+  }, [isVideoLoading, spinValue]);
 
   // Function to handle video playback status
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
@@ -46,6 +63,12 @@ const VideoPlayer = ({ videoUri, imageUri }: VideoPlayerProps) => {
   // If no media provided, return null
   if (!videoUri && !imageUri) return null;
 
+  // Create spin interpolation
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   // If we have a video URI and no error, try to render video
   if (videoUri && !videoError) {
     return (
@@ -56,26 +79,28 @@ const VideoPlayer = ({ videoUri, imageUri }: VideoPlayerProps) => {
           style={styles.video}
           resizeMode={ResizeMode.COVER}
           useNativeControls={true}
-          shouldPlay={false} // Don't auto-play, let user control
+          shouldPlay={false}
           isLooping={false}
           onPlaybackStatusUpdate={onPlaybackStatusUpdate}
           onError={onVideoError}
         />
         
-        {/* Custom play button overlay (optional - remove if you prefer only native controls) */}
+        {/* Custom play button overlay */}
         {!isPlaying && !isVideoLoading && (
           <TouchableOpacity 
             style={styles.playButton}
             onPress={togglePlayPause}
           >
-            <Ionicons name="play-circle" size={60} color="rgba(255, 255, 255, 0.8)" />
+            <Ionicons name="play-circle" size={60} color="rgba(255, 255, 255, 0.9)" />
           </TouchableOpacity>
         )}
         
-        {/* Loading indicator */}
+        {/* White loading screen */}
         {isVideoLoading && (
           <View style={styles.loadingOverlay}>
-            <Text style={styles.loadingText}>Loading video...</Text>
+            <Animated.View style={[styles.spinner, { transform: [{ rotate: spin }] }]}>
+              <Ionicons name="refresh-outline" size={24} color="#666" />
+            </Animated.View>
           </View>
         )}
         
@@ -124,7 +149,7 @@ const styles = StyleSheet.create({
     top: '50%',
     left: '50%',
     transform: [{ translateX: -30 }, { translateY: -30 }],
-    zIndex: 1,
+    zIndex: 2,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -132,15 +157,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
-  loadingText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
+  spinner: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

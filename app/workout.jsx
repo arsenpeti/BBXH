@@ -417,7 +417,7 @@ const WorkoutView = () => {
           exercises={visibleExercises}
           weights={getWeightsArray()}
           focusedInputIndex={focusedInputIndex}
-          currentExerciseIndex={currentExerciseIndex}
+          currentExerciseIndex={0} // Always highlight the first exercise in the visible list
           onWeightChange={handleWeightChange}
           onInputFocus={handleInputFocus}
           onInputBlur={handleInputBlur}
