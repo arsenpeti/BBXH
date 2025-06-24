@@ -1,90 +1,93 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams } from 'expo-router';
 
-const useWorkoutData = (workoutId) => {
-  const [workoutData, setWorkoutData] = useState(null);
-  const [exercises, setExercises] = useState([]);
-  const [weights, setWeights] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+interface Exercise {
+  id: string;
+  name: string;
+  description: string;
+  sets: number;
+  reps: number;
+  rest: number;
+  video?: string;
+}
+
+interface WorkoutData {
+  exercises: Exercise[];
+}
+
+const useWorkoutData = () => {
+  const params = useLocalSearchParams();
+  const workoutId = params.id;
+  
+  const [workoutData, setWorkoutData] = useState<WorkoutData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchWorkoutData = async () => {
-    const options = {
-      method: 'GET',
-      url: `https://stoplight.io/mocks/gym-app-ira/bodie-by-xhess/674100124/user/workouts/${workoutId}`,
-      headers: { Accept: 'application/json', Authorization: 'Bearer 123' },
-    };
-
     try {
-      setLoading(true);
-      console.log('Fetching workout data for ID:', workoutId);
-      const { data } = await axios.request(options);
-      console.log('Workout API Response:', JSON.stringify(data, null, 2));
+      setIsLoading(true);
+      setError(null);
       
-      setWorkoutData(data.workout);
-      setExercises(data.exercises);
-      
-      // Load saved weights
-      await loadWeights(data.exercises.length);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching workout data:', error.response?.data || error.message);
-      setError(error);
-      setLoading(false);
-    }
-  };
+      // For testing - log the workout ID
+      console.log('Fetching workout with ID:', workoutId);
 
-  const loadWeights = async (exerciseCount) => {
-    try {
-      const savedWeights = await AsyncStorage.getItem(`weights_${workoutId}`);
-      if (savedWeights) {
-        setWeights(JSON.parse(savedWeights));
-      } else {
-        setWeights(Array(exerciseCount).fill(''));
-      }
-    } catch (error) {
-      console.error('Error loading weights:', error);
-    }
-  };
+      // Hardcoded test data that matches the API response structure
+      const testData: WorkoutData = {
+        exercises: [
+          {
+            id: '1',
+            name: 'Push Ups',
+            description: 'Basic push ups',
+            sets: 3,
+            reps: 10,
+            rest: 60,
+            video: 'https://example.com/video.mp4'
+          },
+          {
+            id: '2',
+            name: 'Pull Ups',
+            description: 'Basic pull ups',
+            sets: 3,
+            reps: 8,
+            rest: 90,
+            video: 'https://example.com/video2.mp4'
+          }
+        ]
+      };
 
-  const saveWeights = async (updatedWeights) => {
-    try {
-      await AsyncStorage.setItem(`weights_${workoutId}`, JSON.stringify(updatedWeights));
-    } catch (error) {
-      console.error('Error saving weights:', error);
-    }
-  };
+      // Set the test data
+      setWorkoutData(testData);
+      setIsLoading(false);
 
-  const updateWeight = (index, value) => {
-    const updatedWeights = [...weights];
-    updatedWeights[index] = value;
-    setWeights(updatedWeights);
+      /* Commenting out API call for now
+      const response = await axios.get(`https://stoplight.io/mocks/gym-app-ira/bodie-by-xhess/674100124/user/workouts/${workoutId}`);
+      console.log('API Response:', response.data);
+      setWorkoutData(response.data);
+      setIsLoading(false);
+      */
+
+    } catch (err) {
+      console.error('Error in useWorkoutData:', err);
+      setError('Failed to load workout');
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (workoutId) {
-      fetchWorkoutData();
-    }
+    fetchWorkoutData();
   }, [workoutId]);
-
-  useEffect(() => {
-    if (weights.length > 0) {
-      saveWeights(weights);
-    }
-  }, [weights]);
 
   return {
     workoutData,
-    exercises,
-    weights,
-    loading,
+    isLoading,
     error,
-    updateWeight,
-    refetch: fetchWorkoutData,
+    refetch: fetchWorkoutData
   };
 };
 
 export default useWorkoutData;
+
 
 

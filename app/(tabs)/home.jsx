@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../../api/baseUrl';
+import programsApi from '../../api/programsApi';
 
 const App = () => {
   const [items, setItems] = useState([1, 2, 3, 4]); // Days list
@@ -15,6 +16,7 @@ const App = () => {
   const [programData, setProgramData] = useState(null); // Store the program data
   const [loading, setLoading] = useState(true); // Track loading state
   const [errorMessage, setErrorMessage] = useState(null); // Track error message
+  const [fetchingProgram, setFetchingProgram] = useState(false);
   const router = useRouter();
 
   const handlePress = () => {
@@ -58,6 +60,7 @@ const App = () => {
         const transformedData = {
           program: { name: 'User' },
           weeks: response.data.map((program, index) => ({
+            id: program.id, // Store the original program ID here
             order: index,
             name: program.name,
             description: program.description,
@@ -84,6 +87,7 @@ const App = () => {
           program: { name: 'User' },
           weeks: [
             {
+              id: '1', // Add default ID
               order: 0,
               name: 'Week 1',
               workouts: [{ id: '1', imageUrl: 'https://via.placeholder.com/150' }]
@@ -96,6 +100,33 @@ const App = () => {
 
     fetchData();
   }, []); // Empty dependency array means this runs once when component mounts
+
+  // Function to handle program click
+  const handleProgramPress = async (programId) => {
+    try {
+      setFetchingProgram(true);
+      console.log('Fetching program details for ID:', programId); // Add logging
+      
+      // Fetch program details by id - this calls GET /api/programs/{id}
+      const programDetails = await programsApi.getProgramById(programId);
+      
+      console.log('Program details fetched:', programDetails); // Add logging
+      setFetchingProgram(false);
+      
+      // Navigate to workout screen, passing the program data
+      router.push({
+        pathname: '/workout',
+        params: { 
+          id: programId, 
+          program: JSON.stringify(programDetails)
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching program details:', error); // Add logging
+      setFetchingProgram(false);
+      setErrorMessage('Failed to load program details. Please try again.');
+    }
+  };
 
   if (loading) {
     return (
@@ -158,38 +189,48 @@ const App = () => {
 
       {/* SafeAreaView for remaining content */}
       <SafeAreaView style={styles.safeArea}>
+        {/* Show error message if any */}
+        {errorMessage && (
+          <View style={{ padding: 20, backgroundColor: '#ffebee' }}>
+            <Text style={{ color: '#c62828' }}>{errorMessage}</Text>
+          </View>
+        )}
+        
+        {/* Show loading indicator if fetching a program */}
+        {fetchingProgram && (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text>Loading program...</Text>
+          </View>
+        )}
+        
         {/* ScrollView for containers */}
-        <ScrollView
-          contentContainerStyle={styles.scrollViewContentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {weeks.map((week, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.containerBox}
-              onPress={() => {
-                const programId = week.workouts[0].id;
-                router.push({
-                  pathname: '/workout',
-                  params: { id: programId },
-                });
-              }}
-            >
-              <Image
-                source={{ uri: week?.workouts[0]?.imageUrl || 'https://via.placeholder.com/150' }}
-                style={styles.image}
-              />
-              <View style={styles.textSection}>
-                <Text style={styles.weekText}>{week.name}</Text>
-                <Text style={styles.containerText}>{week.description || `Program ${index + 1}`}</Text>
-                <View style={styles.timerSection}>
-                  <FontAwesome5 name="clock" size={14} color="#999" />
-                  <Text style={styles.timerText}>{week.duration || '30'} seconds</Text>
+        {!fetchingProgram && (
+          <ScrollView
+            contentContainerStyle={styles.scrollViewContentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {weeks.map((week, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.containerBox}
+                onPress={() => handleProgramPress(week.id)} // Use week.id instead of week.workouts[0].id
+              >
+                <Image
+                  source={{ uri: week?.workouts[0]?.imageUrl || 'https://via.placeholder.com/150' }}
+                  style={styles.image}
+                />
+                <View style={styles.textSection}>
+                  <Text style={styles.weekText}>{week.name}</Text>
+                  <Text style={styles.containerText}>{week.description || `Program ${index + 1}`}</Text>
+                  <View style={styles.timerSection}>
+                    <FontAwesome5 name="clock" size={14} color="#999" />
+                    <Text style={styles.timerText}>{week.duration || '30'} seconds</Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </SafeAreaView>
     </>
   );

@@ -2,6 +2,33 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 
+interface Exercise {
+  id: string;
+  name_al: string;
+  name_en: string;
+  description_al: string;
+  description_en: string;
+  video_url: string;
+  image_url: string;
+  sets: number;
+  reps: number;
+  rest_between_sets: number;
+  instructions: {
+    sq: string[];
+    en: string[];
+  };
+}
+
+interface ExerciseItemProps {
+  exercise: Exercise;
+  weight: string;
+  isHighlighted: boolean;
+  isFocused: boolean;
+  onWeightChange: (value: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+}
+
 const ExerciseItem = ({ 
   exercise, 
   weight, 
@@ -10,7 +37,7 @@ const ExerciseItem = ({
   onWeightChange, 
   onFocus, 
   onBlur 
-}) => {
+}: ExerciseItemProps) => {
   return (
     <View style={[styles.scrollItem, isHighlighted ? styles.highlighted : null]}>
       {isHighlighted && (
@@ -19,7 +46,17 @@ const ExerciseItem = ({
         </TouchableOpacity>
       )}
       <View style={styles.textContainer}>
-        <Text style={styles.scrollText}>{exercise?.name}</Text>
+        <Text style={styles.scrollText}>{exercise.name_al}</Text>
+        <View style={styles.exerciseDetails}>
+          <Text style={styles.detailText}>Sets: {exercise.sets}</Text>
+          <Text style={styles.detailText}>Reps: {exercise.reps}</Text>
+          <Text style={styles.detailText}>Rest: {exercise.rest_between_sets}s</Text>
+        </View>
+        {exercise.instructions?.sq && (
+          <Text style={styles.instructions} numberOfLines={1}>
+            {exercise.instructions.sq[0]}
+          </Text>
+        )}
       </View>
       <TextInput
         style={[
@@ -41,39 +78,65 @@ const styles = StyleSheet.create({
   scrollItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     padding: 12,
-    height: 55,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 8,
-    marginLeft: 5,
-    marginRight: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   highlighted: {
-    backgroundColor: 'rgb(222, 223, 228)',
-  },
-  scrollText: {
-    fontSize: 16,
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E84479',
   },
   playIcon: {
-    marginRight: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,
   },
-  weightInput: {
-    width: 70,
-    height: 40,
-    borderRadius: 8,
-    paddingHorizontal: 8,
+  scrollText: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
   },
-  unfocusedInput: {
+  exerciseDetails: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 4,
+  },
+  detailText: {
+    fontSize: 14,
     color: '#6B7280',
   },
+  instructions: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontStyle: 'italic',
+  },
+  weightInput: {
+    width: 80,
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    textAlign: 'center',
+    fontSize: 16,
+  },
   focusedInput: {
-    backgroundColor: '#D1D5DB',
+    borderColor: '#E84479',
+    backgroundColor: '#FFF5F7',
+  },
+  unfocusedInput: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#fff',
   },
 });
 
